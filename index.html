@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 40px;
+            text-align: center;
+        }
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+        #qrcode {
+            margin-top: 20px;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>QR Code Generator</h1>
+        <input type="text" id="account" placeholder="Account No.">
+        <input type="text" id="ref1" placeholder="Reference 1">
+        <button onclick="generateQRCode()">Generate QR Code</button>
+        <div id="qrcode"></div>
+    </div>
+    <script>
+        function generateQRCode() {
+            const account = document.getElementById('account').value.trim();
+            const ref1 = document.getElementById('ref1').value.trim();
+            if (!account || !ref1) {
+                alert('Please enter both Account No. and Reference 1.');
+                return;
+            }
+            const data = 'Account No.: ' + account + '\nReference 1: ' + ref1;
+            document.getElementById('qrcode').innerHTML = '';
+            new QRCode(document.getElementById('qrcode'), {
+                text: data,
+                width: 256,
+                height: 256,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+        }
+    </script>
+</body>
+</html>l
