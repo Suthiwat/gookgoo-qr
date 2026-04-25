@@ -1,102 +1,111 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Code Generator</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f0f8ff; /* light blue background */
-            margin: 0;
-            padding: 40px;
-        }
-        .container {
-            max-width: 420px;
-            margin: 0 auto;
-            background-color: #ffffff;
-            border-radius: 8px;
-            padding: 30px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
-        }
-        h1 {
-            color: #007bff;
-            margin-bottom: 20px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            text-align: left;
-            font-weight: bold;
-            color: #333333;
-        }
-        input {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 15px;
-            border: 1px solid #cce5ff;
-            border-radius: 4px;
-            font-size: 16px;
-            box-sizing: border-box;
-        }
-        button {
-            width: 100%;
-            padding: 12px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        #qrcode {
-            margin-top: 20px;
-            display: flex;
-            justify-content: center;
-        }
-    </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bill Payment QR Generator</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #f5faff;
+    margin: 0;
+    padding: 0;
+    color: #333;
+  }
+  .container {
+    max-width: 420px;
+    margin: 40px auto;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  h1 { text-align: center; color: #007BFF; }
+  label { display: block; margin-top: 15px; font-weight: bold; color: #333; }
+  input {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+  button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 20px;
+    background-color: #007BFF;
+    border: none;
+    border-radius: 5px;
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  button:hover { background-color: #0056b3; }
+  #qrcode { margin-top: 20px; text-align: center; }
+</style>
 </head>
 <body>
-    <div class="container">
-        <h1>QR Code Generator</h1>
-        <label for="account">Account No.</label>
-        <input type="text" id="account" placeholder="Enter Account No.">
-        <label for="ref1">Reference 1</label>
-        <input type="text" id="ref1" placeholder="Enter Reference 1">
-        <label for="amount">Amount in baht</label>
-        <input type="number" id="amount" placeholder="Enter Amount">
-        <button onclick="generateQRCode()">Generate QR Code</button>
-        <div id="qrcode"></div>
-    </div>
-    <script>
-    function generateQRCode() {
-        const account = document.getElementById('account').value.trim();
-        const ref1 = document.getElementById('ref1').value.trim();
-        const amount = document.getElementById('amount').value.trim();
-
-        if (!account || !ref1 || !amount) {
-            alert('Please enter Account No., Reference 1, and Amount.');
-            return;
-        }
-
-  const data = 'Account No.: ' + account + '\nReference 1: ' + ref1 + '\nAmount in baht: ' + amount;
-
-        // Clear previous QR code
-        document.getElementById('qrcode').innerHTML = '';
-
-        new QRCode(document.getElementById('qrcode'), {
-            text: data,
-            width: 256,
-            height: 256,
-            colorDark: "#000000",
-            colorLight: "#ffffff",
-            correctLevel: QRCode.CorrectLevel.H
-        });
-    }
-    </script>
+<div class="container">
+  <h1>Bill Payment QR Generator</h1>
+  <label for="account">Account No (Biller ID)</label>
+  <input type="text" id="account" placeholder="Enter Biller ID">
+  <label for="reference">Reference 1</label>
+  <input type="text" id="reference" placeholder="Enter Reference 1">
+  <label for="amount">Amount in Baht</label>
+  <input type="number" id="amount" placeholder="Enter Amount (optional)" step="0.01">
+  <button onclick="generate()">Generate QR Code</button>
+  <div id="qrcode"></div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+// Format TLV tag with two-digit length
+function formatTag(id, value) {
+  const len = value.length.toString().padStart(2, '0');
+  return id + len + value;
+}
+// CRC16 XMODEM implementation
+function crc16(str, crc = 0, xorout = 0) {
+  for (let i = 0, t; i < str.length; i++, crc &= 0xFFFF) {
+    t = (crc >> 8) ^ str.charCodeAt(i);
+    t ^= t >> 4;
+    crc = (crc << 8) ^ (t << 12) ^ (t << 5) ^ t;
+  }
+  return crc ^ xorout;
+}
+// Build Bill Payment payload following Thai QR standard
+function generateBillPayment(billerId, ref1, amount) {
+  const tag30 =
+    formatTag('00','A000000677010112') +
+    formatTag('01', billerId) +
+    formatTag('02', ref1);
+  let payload = '';
+  payload += formatTag('00','01');
+  payload += formatTag('01', amount ? '12' : '11');
+  payload += formatTag('30', tag30);
+  payload += formatTag('53','764');
+  payload += formatTag('58','TH');
+  if (amount) {
+    const amtStr = Number(amount).toFixed(2);
+    payload += formatTag('54', amtStr);
+  }
+  const crcString = payload + '6304';
+  const crcValue = crc16(crcString);
+  const crcHex  = crcValue.toString(16).toUpperCase().padStart(4,'0');
+  return crcString + crcHex;
+}
+function generate() {
+  const account = document.getElementById('account').value.trim();
+  const reference = document.getElementById('reference').value.trim();
+  const amount = document.getElementById('amount').value.trim();
+  if (!account || !reference) {
+    alert('Please enter both Account No and Reference 1.');
+    return;
+  }
+  document.getElementById('qrcode').innerHTML = '';
+  const payload = generateBillPayment(account, reference, amount);
+  new QRCode(document.getElementById('qrcode'), { text: payload, width: 256, height: 256 });
+}
+</script>
 </body>
 </html>
